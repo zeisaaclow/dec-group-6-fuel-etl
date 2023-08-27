@@ -1,0 +1,8 @@
+name: fuel_api
+config: 
+  extract_template_path: "./elt/assets/sql/extract"
+  transform_template_path: "./elt/assets/sql/transform"
+  log_folder_path: "./elt/logs"
+schedule:
+  run_seconds: 5
+  poll_seconds: 2
