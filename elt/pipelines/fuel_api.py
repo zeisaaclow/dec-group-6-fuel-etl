@@ -4,13 +4,15 @@ from elt.connectors.postgresql import PostgreSqlClient
 from dotenv import load_dotenv
 import os 
 from elt.assets.extract_load_transform import transform, SqlTransform
-#from elt.assets.extract_load_transform import extract_load, transform, SqlTransform
 from graphlib import TopologicalSorter
 from elt.assets.pipeline_logging import PipelineLogging
 from elt.assets.metadata_logging import MetaDataLogging, MetaDataLoggingStatus
 from pathlib import Path
-import time
 import yaml
+from elt.connectors.fuel_api import FuelClient
+from elt.assets.extract_load_transform import temp_csv, load_upsert
+import psycopg2
+
 
 def run_pipeline(pipeline_config: dict, postgres_logging_client: PostgreSqlClient):
     ### CREATE LOGGERS ###
@@ -85,6 +87,15 @@ def run_pipeline(pipeline_config: dict, postgres_logging_client: PostgreSqlClien
 if __name__ == "__main__":
     ### READ LOGGING VARIABLES ####
     load_dotenv()
+
+    API_KEY_ID = os.environ.get("API_KEY")
+    AUTHORIZATION = os.environ.get("AUTHORIZATION")
+
+    TARGET_DATABASE_NAME = os.environ.get("TARGET_DATABASE_NAME")
+    TARGET_SERVER_NAME = os.environ.get("TARGET_SERVER_NAME")
+    TARGET_DB_USERNAME = os.environ.get("TARGET_DB_USERNAME")
+    TARGET_DB_PASSWORD = os.environ.get("TARGET_DB_PASSWORD")
+    TARGET_PORT = os.environ.get("TARGET_PORT")
     
     LOGGING_SERVER_NAME = os.environ.get("LOGGING_SERVER_NAME")
     LOGGING_DATABASE_NAME = os.environ.get("LOGGING_DATABASE_NAME")
@@ -100,14 +111,43 @@ if __name__ == "__main__":
         port=LOGGING_PORT
     )
 
-    ### READ FUEL_API.PY CONFIG FILE ####
+    
+    db_connection_string = f"dbname={TARGET_DATABASE_NAME} user={TARGET_DB_USERNAME} password={TARGET_DB_PASSWORD} host={TARGET_SERVER_NAME} port={TARGET_PORT}"
+
+    # Connect to the database
+    conn = psycopg2.connect(db_connection_string)
+
+
+
+    fuel_client = FuelClient(api_key_id=API_KEY_ID, authorization=AUTHORIZATION)
+    access_token = fuel_client.get_access_token()
+
+
+
     yaml_file_path = __file__.replace(".py", ".yaml")
     if Path(yaml_file_path).exists():
         with open(yaml_file_path) as yaml_file:
-            pipeline_config = yaml.safe_load(yaml_file)
+            multi_pipeline_config = yaml.safe_load(yaml_file)
     else:
         raise Exception(f"Missing {yaml_file_path} file! Please create the yaml file with at least a `name` key for the pipeline name.")
 
+    tables_config = multi_pipeline_config.get("tables")
+
+    extract_type = multi_pipeline_config.get("extract_type")
+
     ### SCHEDULE PIPELINE ###
-    run_pipeline(pipeline_config=pipeline_config, 
+    run_pipeline(pipeline_config=multi_pipeline_config, 
                  postgres_logging_client=postgresql_logging_client)
+    
+    fuel_price = fuel_client.get_fuel_api(access_token, extract_type)
+    # print(fuel_price)
+
+
+    temp_csv(data = fuel_price, tables_config = tables_config)
+    load_upsert(tables_config=tables_config, conn = conn)
+
+
+
+
+
+
