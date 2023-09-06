@@ -14,7 +14,7 @@ from elt.assets.extract_load_transform import temp_csv, load_upsert
 import psycopg2
 
 
-def run_pipeline(pipeline_config: dict, postgres_logging_client: PostgreSqlClient):
+def run_pipeline(pipeline_config: dict, postgres_logging_client: PostgreSqlClient, fuel_price, tables_config, conn):
     ### CREATE LOGGERS ###
     metadata_logging = MetaDataLogging(pipeline_name=pipeline_config.get("name"), 
                                        postgresql_client=postgres_logging_client, 
@@ -23,7 +23,9 @@ def run_pipeline(pipeline_config: dict, postgres_logging_client: PostgreSqlClien
                                         log_folder_path=pipeline_config.get("config").get("log_folder_path"))
     
     ### INIT SOURCE API CREDENTIALS ###
-    pass
+
+    temp_csv(data = fuel_price, tables_config = tables_config)
+    load_upsert(tables_config=tables_config, conn = conn)
 
     ### INIT TARGET DB CREDENTIALS ###
     TARGET_DATABASE_NAME = os.environ.get("TARGET_DATABASE_NAME")
@@ -50,7 +52,6 @@ def run_pipeline(pipeline_config: dict, postgres_logging_client: PostgreSqlClien
         ### PERFORM EXTRACT AND LOAD ###
         pipeline_logging.logger.info("Perform extract and load")
         pass
-
 
         ### PERFORM TRANSFORM ###
         pipeline_logging.logger.info("Reading transform assets")
@@ -122,8 +123,6 @@ if __name__ == "__main__":
     fuel_client = FuelClient(api_key_id=API_KEY_ID, authorization=AUTHORIZATION)
     access_token = fuel_client.get_access_token()
 
-
-
     yaml_file_path = __file__.replace(".py", ".yaml")
     if Path(yaml_file_path).exists():
         with open(yaml_file_path) as yaml_file:
@@ -135,16 +134,15 @@ if __name__ == "__main__":
 
     extract_type = multi_pipeline_config.get("extract_type")
 
+    fuel_price = fuel_client.get_fuel_api(access_token, extract_type)
+    #print(fuel_price)
+
     ### SCHEDULE PIPELINE ###
     run_pipeline(pipeline_config=multi_pipeline_config, 
-                 postgres_logging_client=postgresql_logging_client)
-    
-    fuel_price = fuel_client.get_fuel_api(access_token, extract_type)
-    # print(fuel_price)
-
-
-    temp_csv(data = fuel_price, tables_config = tables_config)
-    load_upsert(tables_config=tables_config, conn = conn)
+                 postgres_logging_client=postgresql_logging_client,
+                 fuel_price = fuel_price,
+                 tables_config = tables_config,
+                 conn = conn)
 
 
 

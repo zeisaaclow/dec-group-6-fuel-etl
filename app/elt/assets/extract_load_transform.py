@@ -6,9 +6,7 @@ from jinja2 import Environment
 # from elt.assets.database_extractor import SqlExtractParser, DatabaseTableExtractor
 from elt.connectors.postgresql import PostgreSqlClient
 from graphlib import TopologicalSorter
-
-
-
+import os
 
 class SqlTransform:
     def __init__(self, postgresql_client: PostgreSqlClient, environment: Environment, table_name: str):
@@ -33,7 +31,8 @@ def temp_csv(tables_config, data):
     for table_config in tables_config:
         table_name = table_config["name"]
         table_fuel_price = data[f"{table_name}"]
-        save_to_csv(data_dic = table_fuel_price, output_name = table_name)
+        if table_fuel_price:
+            save_to_csv(data_dic = table_fuel_price, output_name = table_name)
 
     # Connect to PostgreSQL
 def load_upsert(tables_config, conn):
@@ -41,39 +40,43 @@ def load_upsert(tables_config, conn):
         table_name = table_config["name"]
         current_time = datetime.datetime.now()
 
-        cur = conn.cursor()
-        
-        if table_name == "prices":
-            load_columns = "(%s, %s, %s, %s)"
-        else:
-            load_columns = "(%s, %s, %s, %s, %s, %s, %s)"
-        # Path to your CSV file
+        #check if csv exists
         csv_file_path = "elt/data/{}_{}.csv".format(table_name, current_time.strftime('%d%m%Y'))
 
-        # Load CSV data into the table
-        with open(csv_file_path, 'r',encoding='utf-8') as csvfile:
-            csvreader = csv.reader(csvfile)
-            next(csvreader)  # Skip the header row
-            truncate_query = f"TRUNCATE TABLE staging_{table_name};"
-            cur.execute(truncate_query)
-            for row in csvreader:
-                insert_query = f'INSERT INTO staging_{table_name} VALUES {load_columns};'
-                cur.execute(insert_query, row)
-                conn.commit()
+        #If file exists perform load/upsert
+        if os.path.isfile(csv_file_path):
+            cur = conn.cursor()
+            
+            if table_name == "prices":
+                load_columns = "(%s, %s, %s, %s)"
+            else:
+                load_columns = "(%s, %s, %s, %s, %s, %s, %s)"
+            
 
-        # Perform the upsert using ON CONFLICT
+            # Load CSV data into the table
+            with open(csv_file_path, 'r',encoding='utf-8') as csvfile:
+                csvreader = csv.reader(csvfile)
+                next(csvreader)  # Skip the header row
+                truncate_query = f"TRUNCATE TABLE staging_{table_name};"
+                cur.execute(truncate_query)
+                for row in csvreader:
+                    insert_query = f'INSERT INTO staging_{table_name} VALUES {load_columns};'
+                    cur.execute(insert_query, row)
+                    conn.commit()
 
-        upsert_query = f"""
-            INSERT INTO prices ( stationcode, fueltype , price, lastupdated ) 
-            SELECT stationcode, fueltype , price, lastupdated FROM staging_prices
-            ON CONFLICT (stationcode, fueltype) DO UPDATE
-            SET price = EXCLUDED.price, lastupdated = EXCLUDED.lastupdated;
-        """
+            # Perform the upsert using ON CONFLICT
 
-        cur.execute(upsert_query)
+            upsert_query = f"""
+                INSERT INTO prices ( stationcode, fueltype , price, lastupdated ) 
+                SELECT stationcode, fueltype , price, lastupdated FROM staging_prices
+                ON CONFLICT (stationcode, fueltype) DO UPDATE
+                SET price = EXCLUDED.price, lastupdated = EXCLUDED.lastupdated;
+            """
 
-        # Commit changes and close the connection
-        conn.commit()
+            cur.execute(upsert_query)
+
+            # Commit changes and close the connection
+            conn.commit()
 
 
 def transform(dag: TopologicalSorter):
