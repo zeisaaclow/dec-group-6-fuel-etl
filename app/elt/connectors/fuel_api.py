@@ -2,8 +2,34 @@ import requests
 import datetime
 
 class FuelClient:
-    
+    """
+    A Python client for interacting with the Fuel API provided by the New South Wales government.
+
+    This class allows you to authenticate with the Fuel API, obtain an access token, and retrieve
+    fuel price data from the API.
+
+    Args:
+        api_key_id (str): The API key ID for authentication.
+        authorization (str): The authorization key for client credentials.
+
+    Attributes:
+        base_url (str): The base URL for the Fuel API endpoint.
+
+    """ 
     def __init__(self, api_key_id: str, authorization: str):
+
+        """
+        Initializes a FuelClient instance with the provided API credentials.
+
+        Args:
+            api_key_id (str): The API key ID for authentication.
+            authorization (str): The authorization key for client credentials.
+
+        Raises:
+            Exception: If `api_key_id` or `authorization` is set to None.
+
+        """
+
         self.base_url = "https://api.onegov.nsw.gov.au"
         if api_key_id is None: 
             raise Exception("API key cannot be set to None.")
@@ -14,6 +40,17 @@ class FuelClient:
 
 
     def get_access_token(self) -> dict:
+        """
+        Retrieves an access token for authentication.
+
+        Returns:
+            dict: A dictionary containing the access token.
+
+        Raises:
+            Exception: If the API request fails or returns a non-200 status code.
+
+        """
+
         headers = {
             "grant_type" : "client_credentials",
             "Authorization": self.authorization,
@@ -25,6 +62,20 @@ class FuelClient:
             raise Exception(f"Failed to extract data from Fuel API. Status Code: {response.status_code}. Response: {response.text}")
 
     def get_fuel_api(self, access_token, extract_type):
+        """
+        Retrieves fuel price data from the Fuel API.
+
+        Args:
+            access_token (str): The access token obtained from `get_access_token` method.
+            extract_type (str): The type of data extraction, "full" or "incremental".
+
+        Returns:
+            dict: A dictionary containing fuel price data.
+
+        Raises:
+            Exception: If the API request fails or returns a non-200 status code.
+
+        """
 
         current_time = datetime.datetime.now()
         request_timestamp = current_time.strftime('%d/%m/%Y')
