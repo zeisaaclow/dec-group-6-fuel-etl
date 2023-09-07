@@ -2,6 +2,23 @@ import logging
 import time
 
 class PipelineLogging:
+    """
+    A logging wrapper using the logging object
+    
+    Used to log the status of the ELT Pipeline as csv file
+    
+    Attributes
+    __________
+    pipeline_name: str
+        name of the pipeline instance
+    log_folder_path: str
+        Relative directory where the log file is saved to
+
+    Methods
+    __________
+    get_logs()
+        Returns the contents of the log file
+    """
     def __init__(self, pipeline_name: str, log_folder_path: str):
         # name of the pipeline 
         self.pipeline_name = pipeline_name

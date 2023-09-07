@@ -10,6 +10,25 @@ class MetaDataLoggingStatus:
     RUN_FAILURE = "fail"
 
 class MetaDataLogging:
+        """
+    Writes Logs to a Postgres Database
+    
+    Attributes
+    __________
+    pipeline_name: str
+        name of the pipeline instance
+    postgres_client: PostgreSqlClient
+        Instance of the PosgtgreSql Client which will be used to write logs with
+    config: Dict
+        Config Information to be saved as part of the logs e.g. log file path
+    log_folder_name: str
+        Relative directory where the log file is saved to
+
+    Methods
+    __________
+    log()
+       Performs / Executes logging of the desired Log Status and provided message
+    """
     def __init__(
             self, 
             pipeline_name: str,
