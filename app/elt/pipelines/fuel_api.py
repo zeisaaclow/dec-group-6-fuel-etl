@@ -22,11 +22,6 @@ def run_pipeline(pipeline_config: dict, postgres_logging_client: PostgreSqlClien
     pipeline_logging = PipelineLogging(pipeline_name=pipeline_config.get("name"), 
                                         log_folder_path=pipeline_config.get("config").get("log_folder_path"))
     
-    ### INIT SOURCE API CREDENTIALS ###
-
-    temp_csv(data = fuel_price, tables_config = tables_config)
-    load_upsert(tables_config=tables_config, conn = conn)
-
     ### INIT TARGET DB CREDENTIALS ###
     TARGET_DATABASE_NAME = os.environ.get("TARGET_DATABASE_NAME")
     TARGET_SERVER_NAME = os.environ.get("TARGET_SERVER_NAME")
@@ -37,9 +32,6 @@ def run_pipeline(pipeline_config: dict, postgres_logging_client: PostgreSqlClien
 
     try: 
         metadata_logging.log() # start run
-        pipeline_logging.logger.info("Creating source client")
-        ### CREATE SOURCE CLIENT 
-        pass
         ### CREATE TARGET CLIENT
         pipeline_logging.logger.info("Creating target client")
         target_postgresql_client = PostgreSqlClient(
@@ -51,7 +43,8 @@ def run_pipeline(pipeline_config: dict, postgres_logging_client: PostgreSqlClien
         )
         ### PERFORM EXTRACT AND LOAD ###
         pipeline_logging.logger.info("Perform extract and load")
-        pass
+        temp_csv(data = fuel_price, tables_config = tables_config)
+        load_upsert(tables_config=tables_config, conn = conn)
 
         ### PERFORM TRANSFORM ###
         pipeline_logging.logger.info("Reading transform assets")
@@ -74,7 +67,6 @@ def run_pipeline(pipeline_config: dict, postgres_logging_client: PostgreSqlClien
         pipeline_logging.logger.info("Performing Transform")
         # Run Transformations 
         transform(dag=dag)
-
 
         # log completed transformation
         pipeline_logging.logger.info("Completed Pipeline")
