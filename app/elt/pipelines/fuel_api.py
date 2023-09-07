@@ -20,7 +20,7 @@ def run_pipeline(pipeline_config: dict, postgres_logging_client: PostgreSqlClien
     __________
     pipeline_config: dict
     postgres_logging_client: PostgreSqlClient
-        client uses to connect to target environment for transform purpose
+        client uses to connect to target environment for logging purpose
     fuel_price: 
         Raw Dataset in JSON/Dict to be transformed
     tables_config: 
