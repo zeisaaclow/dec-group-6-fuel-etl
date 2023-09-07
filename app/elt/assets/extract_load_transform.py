@@ -8,6 +8,7 @@ from elt.connectors.postgresql import PostgreSqlClient
 from graphlib import TopologicalSorter
 import os
 
+#Transformation Class
 class SqlTransform:
     def __init__(self, postgresql_client: PostgreSqlClient, environment: Environment, table_name: str):
         self.postgresql_client = postgresql_client
@@ -34,7 +35,6 @@ def temp_csv(tables_config, data):
         if table_fuel_price:
             save_to_csv(data_dic = table_fuel_price, output_name = table_name)
 
-    # Connect to PostgreSQL
 def load_upsert(tables_config, conn):
     for table_config in tables_config:
         table_name = table_config["name"]
@@ -78,7 +78,7 @@ def load_upsert(tables_config, conn):
             # Commit changes and close the connection
             conn.commit()
 
-
+#Transform step: Goes through ordered DAG to build tables for fuel statistics
 def transform(dag: TopologicalSorter):
     """
     Performs `create table as` on all nodes in the provided DAG. 
@@ -86,12 +86,3 @@ def transform(dag: TopologicalSorter):
     dag_rendered = tuple(dag.static_order())
     for node in dag_rendered: 
         node.create_table_as()
-
-
-
-
-
-
-
-
-
