@@ -10,7 +10,7 @@ class MetaDataLoggingStatus:
     RUN_FAILURE = "fail"
 
 class MetaDataLogging:
-        """
+    """
     Writes Logs to a Postgres Database
     
     Attributes

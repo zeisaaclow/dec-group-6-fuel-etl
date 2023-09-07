@@ -15,6 +15,19 @@ import psycopg2
 
 
 def run_pipeline(pipeline_config: dict, postgres_logging_client: PostgreSqlClient, fuel_price, tables_config, conn):
+    """ Performs the ELT 
+    Parameters
+    __________
+    pipeline_config: dict
+    postgres_logging_client: PostgreSqlClient
+        client uses to connect to target environment for transform purpose
+    fuel_price: 
+        Raw Dataset in JSON/Dict to be transformed
+    tables_config: 
+        Configuration information
+    conn: 
+        Connection to target db for Load Purposes
+    """
     ### CREATE LOGGERS ###
     metadata_logging = MetaDataLogging(pipeline_name=pipeline_config.get("name"), 
                                        postgresql_client=postgres_logging_client, 
